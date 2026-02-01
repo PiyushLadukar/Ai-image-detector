@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Image Detector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-section {
+            border: 2px dashed #667eea;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            background: #f8f9ff;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-section.dragover {
+            border-color: #764ba2;
+            background: #e8ebff;
+            transform: scale(1.02);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-label {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .upload-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .upload-text {
+            margin-top: 15px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .preview-section {
+            display: none;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .preview-section.active {
+            display: block;
+        }
+
+        #imagePreview {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: none;
+        }
+
+        .analyze-btn.active {
+            display: block;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        .loader.active {
+            display: block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .result-section.real {
+            background: #d4edda;
+            border: 2px solid #28a745;
+        }
+
+        .result-section.ai {
+            background: #f8d7da;
+            border: 2px solid #dc3545;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .result-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .result-section.real .result-title {
+            color: #28a745;
+        }
+
+        .result-section.ai .result-title {
+            color: #dc3545;
+        }
+
+        .confidence {
+            text-align: center;
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .metrics {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .metric-label {
+            font-weight: 600;
+        }
+
+        .disclaimer {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 13px;
+            color: #856404;
+            text-align: center;
+        }
+
+        canvas {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Upload an complaint image r</h1>
+
+
+        <div class="upload-section" id="uploadSection">
+            <label for="fileInput" class="upload-label">
+                📁 Choose Image
+            </label>
+            <input type="file" id="fileInput" accept="image/*">
+            <p class="upload-text">or drag and drop an image here</p>
+        </div>
+
+        <div class="preview-section" id="previewSection">
+            <img id="imagePreview" alt="Image Preview">
+        </div>
+
+        <button class="analyze-btn" id="analyzeBtn">🔬 Analyze Image</button>
+
+        <div class="loader" id="loader"></div>
+
+        <div class="result-section" id="resultSection">
+            <div class="result-title" id="resultTitle"></div>
+            <div class="confidence" id="confidenceText"></div>
+            
+            <div class="metrics">
+                <div class="metric-item">
+                    <span class="metric-label">Noise Level:</span>
+                    <span id="noiseLevel"></span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Sharpness:</span>
+                    <span id="sharpness"></span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Color Saturation:</span>
+                    <span id="saturation"></span>
+                </div>
+                <div class="metric-item">
+                    <span class="metric-label">Smoothness:</span>
+                    <span id="smoothness"></span>
+                </div>
+            </div>
+
+            <div class="disclaimer">
+                ⚠️ <strong>Disclaimer:</strong> This is a probabilistic analysis based on pixel patterns. Results are not 100% accurate and should not be used as definitive proof. Professional tools and human expertise are recommended for critical assessments.
+            </div>
+        </div>
+
+        <canvas id="canvas"></canvas>
+    </div>
+
+    <script>
+        // DOM Elements
+        const fileInput = document.getElementById('fileInput');
+        const uploadSection = document.getElementById('uploadSection');
+        const previewSection = document.getElementById('previewSection');
+        const imagePreview = document.getElementById('imagePreview');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const loader = document.getElementById('loader');
+        const resultSection = document.getElementById('resultSection');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let currentImage = null;
+
+        // File input change handler
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Drag and drop handlers
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0 && files[0].type.startsWith('image/')) {
+                handleFile(files[0]);
+            }
+        });
+
+        // Click to upload
+        uploadSection.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        // Analyze button handler
+        analyzeBtn.addEventListener('click', analyzeImage);
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                handleFile(file);
+            }
+        }
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                currentImage = new Image();
+                currentImage.onload = function() {
+                    imagePreview.src = e.target.result;
+                    previewSection.classList.add('active');
+                    analyzeBtn.classList.add('active');
+                    resultSection.classList.remove('active');
+                };
+                currentImage.src = e.target.result;
+            };
+            
+            reader.readAsDataURL(file);
+        }
+
+        function analyzeImage() {
+            if (!currentImage) return;
+
+            // Show loader
+            loader.classList.add('active');
+            analyzeBtn.disabled = true;
+            resultSection.classList.remove('active');
+
+            // Simulate processing time for better UX
+            setTimeout(() => {
+                performAnalysis();
+            }, 1500);
+        }
+
+        function performAnalysis() {
+            // Set canvas size to image size (scaled down if too large)
+            const maxSize = 800;
+            let width = currentImage.width;
+            let height = currentImage.height;
+
+            if (width > maxSize || height > maxSize) {
+                const ratio = Math.min(maxSize / width, maxSize / height);
+                width *= ratio;
+                height *= ratio;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+
+            // Draw image on canvas
+            ctx.drawImage(currentImage, 0, 0, width, height);
+
+            // Get image data
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const data = imageData.data;
+
+            // Analyze image features
+            const features = calculateFeatures(data, width, height);
+
+            // Calculate AI probability based on features
+            const aiProbability = calculateAIProbability(features);
+
+            // Display results
+            displayResults(features, aiProbability);
+
+            // Hide loader
+            loader.classList.remove('active');
+            analyzeBtn.disabled = false;
+        }
+
+        function calculateFeatures(data, width, height) {
+            const sampleSize = Math.min(10000, Math.floor(data.length / 16)); // Sample pixels for performance
+            const step = Math.floor(data.length / (sampleSize * 4));
+
+            let totalNoise = 0;
+            let totalSharpness = 0;
+            let totalSaturation = 0;
+            let smoothPixels = 0;
+            let sampledPixels = 0;
+
+            // Calculate features by sampling pixels
+            for (let i = 0; i < data.length - 4 * width; i += step * 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                // Calculate saturation
+                const max = Math.max(r, g, b);
+                const min = Math.min(r, g, b);
+                const saturation = max === 0 ? 0 : (max - min) / max;
+                totalSaturation += saturation;
+
+                // Calculate local variance (noise estimate)
+                if (i + 4 * width < data.length) {
+                    const nextR = data[i + 4];
+                    const nextG = data[i + 5];
+                    const nextB = data[i + 6];
+                    const belowR = data[i + 4 * width];
+                    const belowG = data[i + 4 * width + 1];
+                    const belowB = data[i + 4 * width + 2];
+
+                    const diffHoriz = Math.abs(r - nextR) + Math.abs(g - nextG) + Math.abs(b - nextB);
+                    const diffVert = Math.abs(r - belowR) + Math.abs(g - belowG) + Math.abs(b - belowB);
+                    
+                    totalNoise += (diffHoriz + diffVert) / 6;
+
+                    // Smoothness check
+                    if (diffHoriz + diffVert < 30) {
+                        smoothPixels++;
+                    }
+
+                    // Laplacian-like sharpness
+                    const laplacian = Math.abs(4 * r - nextR - belowR - data[i - 4] - data[i - 4 * width]) +
+                                     Math.abs(4 * g - nextG - belowG - data[i - 3] - data[i - 4 * width + 1]) +
+                                     Math.abs(4 * b - nextB - belowB - data[i - 2] - data[i - 4 * width + 2]);
+                    totalSharpness += laplacian / 3;
+                }
+
+                sampledPixels++;
+            }
+
+            return {
+                noise: totalNoise / sampledPixels,
+                sharpness: totalSharpness / sampledPixels,
+                saturation: (totalSaturation / sampledPixels) * 100,
+                smoothness: (smoothPixels / sampledPixels) * 100
+            };
+        }
+
+        function calculateAIProbability(features) {
+            // AI-generated images often have:
+            // - Very low noise (overly smooth)
+            // - High saturation
+            // - Uniform sharpness
+            // - High smoothness
+
+            let aiScore = 0;
+
+            // Noise scoring (AI images tend to be very smooth)
+            if (features.noise < 8) {
+                aiScore += 25; // Very low noise suggests AI
+            } else if (features.noise < 15) {
+                aiScore += 10;
+            } else {
+                aiScore -= 10; // Natural noise suggests real
+            }
+
+            // Smoothness scoring
+            if (features.smoothness > 70) {
+                aiScore += 25; // Too smooth
+            } else if (features.smoothness > 50) {
+                aiScore += 10;
+            } else {
+                aiScore -= 5;
+            }
+
+            // Saturation scoring (AI images often oversaturated)
+            if (features.saturation > 60) {
+                aiScore += 20;
+            } else if (features.saturation > 40) {
+                aiScore += 5;
+            } else if (features.saturation < 20) {
+                aiScore -= 10;
+            }
+
+            // Sharpness scoring
+            if (features.sharpness > 50 && features.sharpness < 150) {
+                aiScore += 10; // Unnaturally uniform sharpness
+            } else if (features.sharpness > 200) {
+                aiScore -= 5; // High variance suggests real
+            }
+
+            // Normalize to 0-100 range with some randomness for realism
+            const randomFactor = (Math.random() - 0.5) * 10;
+            let probability = Math.max(10, Math.min(90, 50 + aiScore + randomFactor));
+
+            return Math.round(probability);
+        }
+
+        function displayResults(features, aiProbability) {
+            // Determine classification
+            const isAI = aiProbability >= 50;
+            
+            resultSection.className = 'result-section active ' + (isAI ? 'ai' : 'real');
+            
+            document.getElementById('resultTitle').textContent = 
+                isAI ? '⚠️ Possibly AI-Generated Image' : '✓ Likely Real Image';
+            
+            document.getElementById('confidenceText').textContent = 
+                `Confidence: ${isAI ? aiProbability : 100 - aiProbability}%`;
+
+            // Display metrics
+            document.getElementById('noiseLevel').textContent = 
+                features.noise.toFixed(2) + ' (lower = smoother)';
+            
+            document.getElementById('sharpness').textContent = 
+                features.sharpness.toFixed(2);
+            
+            document.getElementById('saturation').textContent = 
+                features.saturation.toFixed(1) + '%';
+            
+            document.getElementById('smoothness').textContent = 
+                features.smoothness.toFixed(1) + '%';
+
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>
