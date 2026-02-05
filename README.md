@@ -1,8 +1,5 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/AI-Detection-blue?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Image-Analysis-purple?style=for-the-badge"/>
-  <img src="https://img.shields.io/badge/Deepfake-Detection-red?style=for-the-badge"/>
-</p>
+
+  ![Banner](https://capsule-render.vercel.app/api?type=soft&height=300&color=gradient&text=AI%20IMAGE%20DETECTOR)
 
 ## 📌 Project Overview
 The **AI Image Detection System** is a web-based application that detects whether an uploaded image is **AI-generated** or **Real (Human-created)**.  
